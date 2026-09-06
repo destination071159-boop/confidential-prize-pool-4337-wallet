@@ -1,0 +1,49 @@
+{
+  "name": "Confidential Prize Pool 4337 Wallet",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "description": "Gasless ERC-4337 smart-account wallet with a Confidential Prize Pool: no-loss prize savings where deposits, balances, and the FHE-random winner stay encrypted — powered by Zama FHE.",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
+  },
+  "action": {
+    "default_title": "Confidential Prize Pool 4337 Wallet",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "static/js/background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "permissions": ["activeTab", "storage", "sidePanel", "notifications", "tabs"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["file://*/*", "http://*/*", "https://*/*"],
+      "js": ["static/js/inject.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["relayer-sdk-js.umd.cjs", "tfhe_bg.wasm", "kms_lib_bg.wasm"],
+      "matches": ["<all_urls>"]
+    },
+    {
+      "resources": ["static/js/inpage.js"],
+      "matches": ["file://*/*", "http://*/*", "https://*/*"]
+    }
+  ]
+}
