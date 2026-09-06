@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Telegraf — self-hosted, packaged in the extension (same-origin) */
+@font-face { font-family: Telegraf; src: url('/fonts/Telegraf-Variable.ttf') format('truetype'); font-weight: 100 900; font-style: normal; font-display: swap; }
+@font-face { font-family: Telegraf; src: url('/fonts/Telegraf-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: Telegraf; src: url('/fonts/Telegraf-Bold.ttf') format('truetype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: Telegraf; src: url('/fonts/Telegraf-UltraBold.ttf') format('truetype'); font-weight: 800; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: light;
+  /* c7984 design tokens */
+  --yellow: #f9d100;
+  --yellow-300: #fce472;
+  --background: #ededed;
+  --glass: rgba(251, 251, 251, 0.72);
+  --glass-strong: rgba(251, 251, 251, 0.82);
+  --card-solid: #ffffff;
+  --text: #111111;
+  --text-dim: #374151;
+  --text-faint: #6b7280;
+  --good: #0a9429;
+  --bad: #dd3232;
+  --lock: #92400e;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-hair: rgba(0, 0, 0, 0.06);
+  --shadow-glass: 0 2px 32px rgba(0, 0, 0, 0.05), inset 0 0 24px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-btn-primary: 0 0 0 1px #181818, 0 4px 8px rgba(0, 0, 0, 0.12), 0 12px 32px -8px rgba(0, 0, 0, 0.18);
+  --shadow-btn-accent: 0 0 0 1px #ffeb91, 0 4px 8px rgba(255, 215, 36, 0.24), 0 12px 32px -8px rgba(255, 215, 36, 0.32);
+  --grad-primary: linear-gradient(180deg, #3d3d3d 0%, #181818 100%);
+  --grad-accent: linear-gradient(180deg, #fffae6 0%, #ffe46b 100%);
+  --grad-hero: radial-gradient(680px 460px at 24% 0%, rgba(255, 233, 138, 0.55), transparent 62%);
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    @apply text-[color:var(--text)] antialiased;
+    font-family: Telegraf, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    min-height: 100vh;
+    background: var(--grad-hero), var(--background);
+    background-attachment: fixed;
+  }
+  code, pre, .mono {
+    font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  }
+  a { color: #8a6d00; text-decoration: none; font-weight: 600; }
+  a:hover { text-decoration: underline; }
+}
+
+@layer components {
+  /* Dark pill — the c7984 primary action */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           text-white font-semibold text-sm transition-all duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--grad-primary);
+    box-shadow: var(--shadow-btn-primary);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+
+  /* Glass secondary */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium text-sm text-[color:var(--text)] transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+  .btn-secondary:hover { border-color: var(--yellow); box-shadow: var(--shadow-btn-accent); }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg
+           font-medium text-sm transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    color: var(--bad);
+    background: rgba(221, 50, 50, 0.06);
+    border: 1px solid rgba(221, 50, 50, 0.28);
+  }
+  .btn-danger:hover { background: rgba(221, 50, 50, 0.12); }
+
+  .card {
+    @apply rounded-2xl p-5;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+
+  .input-field {
+    @apply w-full rounded-lg px-3 py-2 text-sm text-[color:var(--text)]
+           placeholder-gray-400 focus:outline-none transition-colors duration-150;
+    background: var(--card-solid);
+    border: 1px solid var(--border);
+  }
+  .input-field:focus { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(249, 209, 0, 0.2); }
+
+  .badge-official { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-emerald-700 bg-emerald-500/10 border border-emerald-600/30; }
+  .badge-custom   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-amber-700 bg-amber-500/10 border border-amber-600/30; }
+  .badge-active   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-green-700 bg-green-500/10 border border-green-600/30; }
+  .badge-inactive { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-gray-500 bg-black/5 border border-black/10; }
+
+  .skeleton { @apply animate-pulse rounded; background: rgba(0,0,0,0.06); }
+}
