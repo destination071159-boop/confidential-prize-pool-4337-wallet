@@ -1,0 +1,14 @@
+{
+  "agentPrivateKey": "0x<testnet signer key the wallet generated>",
+  "agentEOA": "0x<agent signer address>",
+  "agentSmartAccount": "0x<agent's gasless 4337 account — the on-chain spender>",
+  "ownerSmartAccount": "0x<your smart account — spends come from here>",
+  "token": "0x<confidential token address>",
+  "symbol": "cUSDC",
+  "module": "0x51eDE1d7cB232e8CCd516737f606bE9c61D2C488",
+  "rpc": "https://<your sepolia rpc>",
+  "bundlerUrl": "https://api.pimlico.io/v2/11155111/rpc?apikey=<key>",
+  "paymasterUrl": "https://api.pimlico.io/v2/11155111/rpc?apikey=<key>",
+  "sponsorshipPolicyId": "sp_...",
+  "chainId": 11155111
+}
