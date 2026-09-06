@@ -1,0 +1,11 @@
+node_modules
+artifacts
+cache
+types
+dist
+coverage
+coverage.json
+fhevmTemp
+.env
+deployments/localhost
+scripts/agent.config.json
