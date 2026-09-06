@@ -6,6 +6,8 @@ A **no-loss, prize-savings dApp made confidential with the Zama FHE protocol** â
 
 **Live contract (Sepolia):** [`0xD24FBf0F84C9f1AfCc63354498b8f1B3AF6f1067`](https://sepolia.etherscan.io/address/0xD24FBf0F84C9f1AfCc63354498b8f1B3AF6f1067)
 
+[![Confidential Prize Pool Demo](store-screenshot-1280x800.png)](https://youtu.be/6qhjFtrd7CU)
+
 ---
 
 ## Repository layout
