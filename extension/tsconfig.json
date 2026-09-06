@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["chrome", "vite/client"],
+    "paths": {
+      "@zama-fhe/react-sdk/wagmi": ["./src/zama/wagmi.ts"],
+      "@zama-fhe/react-sdk": ["./src/zama/shim.tsx"],
+      "@zhieldwrap/core": ["./core/index.ts"],
+      "@zhieldwrap/core/*": ["./core/*.ts"],
+      "@web/*": ["./web/*"]
+    }
+  },
+  "include": ["src", "web", "core"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

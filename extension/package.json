@@ -1,0 +1,43 @@
+{
+  "name": "confidential-4337-wallet-extension",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Confidential Prize Pool 4337 Wallet (Chromium MV3): a gasless ERC-4337 smart-account wallet featuring a no-loss Confidential Prize Pool — deposits, balances, and the FHE-random deposit-weighted winner all stay encrypted (Zama FHE / ERC-7984), plus shield/unshield and delegated owner-view. All gasless via a paymaster.",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build:app": "vite build",
+    "build:background": "vite build -c vite.config.background.ts",
+    "build:inpage": "vite build -c vite.config.inpage.ts",
+    "build:inject": "vite build -c vite.config.inject.ts",
+    "build": "pnpm build:app && pnpm build:background && pnpm build:inpage && pnpm build:inject",
+    "package": "pnpm build && node scripts/package.mjs",
+    "package:cws": "pnpm build && node scripts/package.mjs --cws",
+    "type-check": "tsc --noEmit",
+    "lint": "echo \"[extension] no lint yet\" && exit 0"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.45.0",
+    "@zama-fhe/react-sdk": "2.5.0",
+    "@zama-fhe/sdk": "2.5.0",
+    "abstractionkit": "^0.4.1",
+    "ethers": "^6.11.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.24.0",
+    "viem": "^2.17.0",
+    "wagmi": "^2.11.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.270",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "terser": "^5.31.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.3.4"
+  }
+}
