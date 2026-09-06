@@ -1,165 +1,38 @@
-================================================================================
-CONFIDENTIAL PRIZE POOL 4337 WALLET — DEMO SCRIPT
-Target: ~3 minutes · real person on camera/voice (NO AI voice or AI video)
-================================================================================
+CONFIDENTIAL PRIZE POOL — DEMO STEPS
+All on the "Prize Pool" page (left menu). Fully self-contained — no scripts.
 
-WHAT YOU'RE PROVING (the judging criteria, keep these in the back of your mind):
-  1. CORRECTNESS      — full cycle runs onchain on Sepolia: deposit → draw → claim → withdraw
-  2. CONFIDENTIALITY  — amounts, balances, winner are ciphertext; only the owner can decrypt
-  3. UX              — one-click, gasless (ERC-4337 + paymaster), no MetaMask popups per step
-  4. PRODUCTION-READY — real deployed contract, real tx hashes on Etherscan
+STEP 0 — Reload first (address changed)
+- chrome://extensions → click ↻ on the card
+- Open wallet → left menu → "Prize Pool"
 
-Live contract (have this tab open):
-  https://sepolia.etherscan.io/address/0xD24FBf0F84C9f1AfCc63354498b8f1B3AF6f1067
+STEP 1 — Faucet
+- Click "Faucet: 1,000 USDC" → wait ✅
 
+STEP 2 — Deposit
+- Type 100 in "Deposit amount (USDC)"
+- Click "Deposit 100 confidentially" → wait ✅
 
-================================================================================
-PART 0 — BEFORE YOU HIT RECORD (setup, off camera)
-================================================================================
+STEP 3 — Reveal balance
+- Section "2 · Your private position"
+- Under "Your pool balance" click "Reveal (decrypt)" → sign → shows 100
 
-[ ] 1. Build is fresh:   npm run build   (inside confidential-4337-wallet-extension/)
-[ ] 2. Load the extension:
-        - open  chrome://extensions
-        - turn ON "Developer mode" (top-right)
-        - "Load unpacked" → select the  build/  folder
-        - confirm the yellow "Z" icon appears in the toolbar
-[ ] 3. Open the wallet, create/unlock it. IMPORTANT for the DRAW step:
-        - draw() is owner-only. To show the draw live, unlock with the OWNER key
-          (the account that deployed the pool: 0x204a73e8...167d).
-        - If you demo with a different account, you can still show
-          faucet → deposit → reveal → withdraw; just skip the live draw
-          (or say "the keeper triggers this on a schedule").
-[ ] 4. Pre-fund gas is NOT needed — the Pimlico paymaster sponsors everything.
-        But do a ONE practice run start-to-finish so the FHE relayer is warm
-        (first decrypt can take a few seconds).
-[ ] 5. Open two browser things side by side if you can:
-        - the wallet popup (or the wallet in a tab)
-        - an Etherscan tab on the contract address above
-[ ] 6. (Optional, strong opener) Have the landing page open in a tab:
-        landing/index.html   — for a 10-second "what is this" intro.
+STEP 4 — Fund the prize
+- Section "3 · Fund the prize"
+- Amount = 500 → click "🎁 Fund prize" → wait ✅
 
+STEP 5 — Draw
+- Section "4 · Draw"
+- Click "🎲 Trigger confidential draw" → wait ✅
 
-================================================================================
-PART 1 — THE PITCH (0:00 – 0:25)   [~25s]
-================================================================================
+STEP 6 — Reveal winnings + claim
+- Under "Your winnings" click "Reveal (decrypt)" → shows 500
+- Click "🎉 Claim winnings" → wait ✅
 
-SAY (to camera):
-  "This is a Confidential Prize Pool — a no-loss, prize-savings dApp, built as a
-   4337 smart-account wallet. You deposit, and your amount is encrypted before it
-   ever leaves the browser. Each round, one depositor wins the yield — and the
-   winner is picked ONCHAIN by fully-homomorphic randomness, weighted by deposit
-   size. Nobody, not even the pool, can see the amounts or who won. And you can
-   pull your principal out any time — you can only win, never lose."
+STEP 7 — Withdraw
+- Section "5 · Withdraw principal"
+- Type 50 → click "Withdraw principal" → wait ✅
 
-DO:
-  - (optional) show the landing page for 5 seconds, then
-  - open the wallet, land on the "Prize Pool" tab.
-
-
-================================================================================
-PART 2 — DEPOSIT, CONFIDENTIALLY (0:25 – 1:15)   [~50s]
-================================================================================
-
-STEP A — FAUCET
-  DO:  click  "🚰 Faucet: 1,000 USDC"
-  SAY: "First, some test USDC. This is gasless — my smart account pays nothing,
-        the paymaster sponsors it."
-  WAIT for the ✅ confirmation.
-
-STEP B — DEPOSIT
-  DO:  leave amount at 100 (or type an amount) → click
-       "🔒 Deposit ___ confidentially"
-  SAY: "Now I deposit. Watch: the amount is encrypted on my device, then it's one
-        transaction — approve, wrap into a confidential ERC-7984 token, and deposit
-        into the pool. Still gasless."
-  WAIT for ✅.
-
-STEP C — SHOW IT'S REALLY ENCRYPTED (the money shot)
-  DO:  switch to the Etherscan tab → refresh → open the latest transaction.
-  SAY: "Here's that transaction on Sepolia. Notice the amount is a ciphertext
-        handle — there is no plaintext '100' anywhere. That's the whole point."
-  (Point at the encrypted input / event data.)
-
-
-================================================================================
-PART 3 — ONLY YOU CAN SEE YOUR BALANCE (1:15 – 1:45)   [~30s]
-================================================================================
-
-STEP D — ENABLE PRIVATE VIEW  (first time only)
-  DO:  click  "🔑 Enable private view"
-  SAY: "To read my own balance, my smart account delegates decryption rights to me.
-        One-time, gasless."
-  WAIT for ✅.
-
-STEP E — REVEAL
-  DO:  under "Your pool balance" click  "Reveal (decrypt)"
-  SAY: "Now I sign an EIP-712 message and the balance decrypts — but only for me.
-        On-chain it stayed encrypted the entire time."
-  WAIT — the number appears (e.g. 100.00 cUSDC).
-
-
-================================================================================
-PART 4 — THE BLIND DRAW (1:45 – 2:30)   [~45s]   *** owner account only ***
-================================================================================
-
-STEP F — DRAW
-  DO:  scroll to "3 · Draw" → click  "🎲 Trigger confidential draw"
-  SAY: "Now the draw. This calls FHE.randEuint64 — the randomness is generated
-        INSIDE the EVM, never off-chain. It draws a ticket and walks the encrypted
-        balances to pick a deposit-weighted winner. No oracle, no plaintext, and
-        the pool itself can't tell who won — the prize lands as ciphertext."
-  WAIT for ✅.
-
-STEP G — REVEAL WINNINGS + CLAIM
-  DO:  under "Your winnings" click  "Reveal (decrypt)"
-  SAY: "I decrypt my winnings — and only the actual winner sees a non-zero prize.
-        Everyone else just sees zero."
-  DO:  if you won, click  "🎉 Claim winnings"
-  SAY: "Claim pays it out as a confidential transfer."
-
-  (If demoing on a NON-owner account: skip F/G and say
-   "In production a keeper triggers the draw on a schedule; here the pool owner
-    triggers it — I'll show that in the repo / a second clip.")
-
-
-================================================================================
-PART 5 — NO LOSS (2:30 – 2:50)   [~20s]
-================================================================================
-
-STEP H — WITHDRAW
-  DO:  scroll to "4 · Withdraw principal" → type an amount → click
-       "↩︎ Withdraw principal"
-  SAY: "And it's no-loss. I can withdraw my principal any time, in full. The amount
-        is encrypted again, and the contract clamps it in FHE so a withdrawal never
-        leaks my balance."
-  WAIT for ✅.
-
-
-================================================================================
-PART 6 — CLOSE (2:50 – 3:00)   [~10s]
-================================================================================
-
-SAY (to camera):
-  "So: deposits, balances, odds, and the winner — all encrypted end to end. Picked
-   onchain, no-loss, and completely gasless. That's the Confidential Prize Pool.
-   Contract's live on Sepolia, code's on GitHub. Thanks!"
-
-DO:
-  - flash the Etherscan contract page and/or the GitHub repo for the last 3 seconds.
-
-
-================================================================================
-QUICK REFERENCE — THE CYCLE (for on-screen captions if you add them)
-================================================================================
-  Faucet  →  Deposit (encrypted)  →  Enable view  →  Reveal balance
-          →  Draw (FHE-random, weighted)  →  Reveal + Claim  →  Withdraw (no-loss)
-
-WHAT'S ENCRYPTED : deposit amount, balance, pooled total, each player's odds, the winner
-WHAT'S PUBLIC    : the set of depositors, the count, and timing (deliberate, documented)
-
-GOTCHAS / IF SOMETHING STALLS:
-  - First decrypt is slow (relayer warming up) — that's why you did a practice run.
-  - "Enable private view" must be done once per account before Reveal works.
-  - Draw disabled/greyed out = you're not on the owner account.
-  - If a button does nothing, check the paymaster/bundler env is set (VITE_BUNDLER_URL).
-  - Re-run a full practice cycle right before recording so balances are in a clean state.
+NOTES
+- Type only: 100 (deposit), 500 (prize), 50 (withdraw)
+- Every action is gasless
+- Wait ~30-60s after deposit/draw before revealing (coprocessor)

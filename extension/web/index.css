@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbars everywhere (scrolling still works) */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0; height: 0; display: none; }
+html, body { overflow-x: hidden; }
+
 /* Telegraf — self-hosted, packaged in the extension (same-origin) */
 @font-face { font-family: Telegraf; src: url('/fonts/Telegraf-Variable.ttf') format('truetype'); font-weight: 100 900; font-style: normal; font-display: swap; }
 @font-face { font-family: Telegraf; src: url('/fonts/Telegraf-Regular.ttf') format('truetype'); font-weight: 400; font-style: normal; font-display: swap; }

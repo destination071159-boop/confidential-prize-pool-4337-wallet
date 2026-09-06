@@ -55,6 +55,11 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     mapping(address => euint64) private _winnings;   // encrypted, claimable prize winnings per user
     euint64 private _prizeReserve;                    // encrypted, admin-funded yield reserve
 
+    // A depositor is a 4337 smart account; the human owner (an EOA) can't be inferred on-chain, so the
+    // deposit passes its owner EOA in `data` and we grant that EOA decrypt access to the balance/winnings.
+    // This lets the owner reveal with a plain user-decryption (no delegated-decrypt round-trip needed).
+    mapping(address => address) public viewerOf; // smart account => owner EOA allowed to decrypt
+
     uint256 public drawCount;
     uint256 public lastDrawTime;
     uint256 public drawInterval; // seconds; a keeper may call draw() once per interval
@@ -103,18 +108,40 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     ) external override returns (ebool) {
         require(msg.sender == address(token), "only token");
 
-        bool isPrize = data.length == 32 && abi.decode(data, (bytes32)) == PRIZE_TAG;
+        // `data` semantics: 32 bytes == PRIZE_TAG funds the prize reserve (owner only); otherwise a
+        // 32-byte word is the depositor's owner EOA (for decrypt access); empty means no viewer.
+        bool isPrize = false;
+        address viewer = address(0);
+        if (data.length == 32) {
+            bytes32 word = abi.decode(data, (bytes32));
+            if (word == PRIZE_TAG) {
+                isPrize = true;
+            } else {
+                viewer = address(uint160(uint256(word)));
+            }
+        }
+
+        // Re-home the incoming handle into a pool-OWNED ciphertext (add to 0). The pool only has
+        // TRANSIENT access to `amount` from the token, so persistent FHE.allow on it does not stick.
+        // A handle the pool creates via arithmetic is fully owned, so allowThis/allow persist.
+        euint64 incoming = FHE.add(amount, FHE.asEuint64(0));
 
         if (isPrize) {
-            require(from == owner, "only owner funds prize");
-            _prizeReserve = FHE.isInitialized(_prizeReserve) ? FHE.add(_prizeReserve, amount) : amount;
+            // Mock yield source: anyone may top up the prize reserve (in production this would be
+            // funded from real yield on the pooled principal — see README). Kept open so the demo can
+            // fund the prize in-app from the connected account.
+            _prizeReserve = FHE.isInitialized(_prizeReserve) ? FHE.add(_prizeReserve, incoming) : incoming;
             FHE.allowThis(_prizeReserve);
             emit PrizeFunded(from);
         } else {
-            _balance[from] = FHE.isInitialized(_balance[from]) ? FHE.add(_balance[from], amount) : amount;
-            _total = FHE.isInitialized(_total) ? FHE.add(_total, amount) : amount;
+            _balance[from] = FHE.isInitialized(_balance[from]) ? FHE.add(_balance[from], incoming) : incoming;
+            _total = FHE.isInitialized(_total) ? FHE.add(_total, incoming) : incoming;
             FHE.allowThis(_balance[from]);
             FHE.allow(_balance[from], from);
+            if (viewer != address(0)) {
+                viewerOf[from] = viewer;
+                FHE.allow(_balance[from], viewer); // owner EOA can plain user-decrypt its balance
+            }
             FHE.allowThis(_total);
             if (!isDepositor[from]) {
                 isDepositor[from] = true;
@@ -142,6 +169,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         _total = FHE.sub(_total, actual);
         FHE.allowThis(_balance[msg.sender]);
         FHE.allow(_balance[msg.sender], msg.sender);
+        if (viewerOf[msg.sender] != address(0)) FHE.allow(_balance[msg.sender], viewerOf[msg.sender]);
         FHE.allowThis(_total);
 
         FHE.allowTransient(actual, address(token));
@@ -150,7 +178,9 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
     }
 
     // ── Draw: onchain, deposit-weighted, FHE-random winner selection over encrypted balances ──────
-    function draw() external onlyOwner {
+    // Public so any account (or a keeper) can trigger a round; a production build would gate this
+    // behind a keeper / drawInterval to prevent draw-grinding. Here drawInterval == 0 (draw anytime).
+    function draw() external {
         uint256 n = depositors.length;
         require(n > 0, "no depositors");
         require(block.timestamp >= lastDrawTime + drawInterval || drawInterval == 0, "too early");
@@ -186,6 +216,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
             _winnings[who] = FHE.isInitialized(_winnings[who]) ? FHE.add(_winnings[who], award) : award;
             FHE.allowThis(_winnings[who]);
             FHE.allow(_winnings[who], who);
+            if (viewerOf[who] != address(0)) FHE.allow(_winnings[who], viewerOf[who]);
         }
 
         // reserve consumed by this draw
@@ -205,6 +236,7 @@ contract ConfidentialPrizePool is ZamaEthereumConfig, IERC7984Receiver {
         _winnings[msg.sender] = FHE.asEuint64(0);
         FHE.allowThis(_winnings[msg.sender]);
         FHE.allow(_winnings[msg.sender], msg.sender);
+        if (viewerOf[msg.sender] != address(0)) FHE.allow(_winnings[msg.sender], viewerOf[msg.sender]);
 
         FHE.allowTransient(win, address(token));
         token.confidentialTransfer(msg.sender, win);

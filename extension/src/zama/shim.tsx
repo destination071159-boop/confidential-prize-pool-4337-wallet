@@ -94,6 +94,19 @@ export interface EncryptParams {
   userAddress: `0x${string}`;
 }
 
+// Imperative regular user-decrypt (click-triggered). Decrypts handles allowed to the connected EOA.
+export function useUserDecryptNow(): UseMutationResult<DecryptResult, Error, { handles: HandlePair[] }> {
+  const { signer } = useContext(ZamaContext);
+  const { address } = useAccount();
+  return useMutation<DecryptResult, Error, { handles: HandlePair[] }>({
+    mutationFn: async ({ handles }) => {
+      if (!signer) throw new Error("No signer available for decryption.");
+      if (!address) throw new Error("Wallet not connected.");
+      return await fhevmUserDecrypt(handles, address, (eip712) => signer.signTypedData(eip712));
+    },
+  });
+}
+
 export function useEncrypt(): UseMutationResult<EncryptResult, Error, EncryptParams> {
   return useMutation<EncryptResult, Error, EncryptParams>({
     mutationFn: (params) => fhevmEncrypt(params),

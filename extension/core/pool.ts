@@ -5,7 +5,7 @@
  */
 import poolAbi from "./abis/ConfidentialPrizePool.abi.json";
 
-export const POOL_ADDRESS = "0xD24FBf0F84C9f1AfCc63354498b8f1B3AF6f1067" as `0x${string}`;
+export const POOL_ADDRESS = "0x78d61B58237A95F4c139f6115D50f41BB06D533d" as `0x${string}`;
 export const POOL_ABI = poolAbi as any;
 
 // Deposit asset (confidential ERC-7984) + its ERC-20 underlying (the faucet mints this).

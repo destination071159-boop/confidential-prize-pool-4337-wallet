@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useReadContract } from "wagmi";
-import { encodeFunctionData } from "viem";
-import { useEncrypt, useDecryptBalanceAs } from "@zama-fhe/react-sdk";
+import { encodeFunctionData, encodeAbiParameters } from "viem";
+import { useEncrypt, useUserDecryptNow } from "@zama-fhe/react-sdk";
 import {
   POOL_ADDRESS,
   POOL_ABI,
@@ -11,27 +11,21 @@ import {
   CONFIDENTIAL_TRANSFER_AND_CALL_ABI,
   CONFIDENTIAL_TOKEN_ABI,
   UNDERLYING_TOKEN_ABI,
-  ACL_ADDRESS,
-  ACL_DELEGATE_ABI,
-  VIEW_DELEGATION_EXPIRY,
   NULL_HANDLE,
   parseAmount,
   formatAmount,
   toUnderlying,
   shortAddr,
-  isPoolOwner,
   BUNDLER_URL,
 } from "@zhieldwrap/core";
 import { useSmartAccount } from "../hooks/useSmartAccount";
 import { recordActivity } from "../lib/activity";
 
-const viewKey = (a?: string) => `c4337_pool_view_${(a ?? "").toLowerCase()}`;
-
 export function PrizePool() {
   const { eoa, smartAccountAddress, sendTransactions } = useSmartAccount();
   const acct = smartAccountAddress as `0x${string}` | undefined;
   const encrypt = useEncrypt();
-  const decryptAs = useDecryptBalanceAs();
+  const decrypt = useUserDecryptNow();
 
   // public pool stats
   const { data: drawCount, refetch: rDraw } = useReadContract({ address: POOL_ADDRESS, abi: POOL_ABI, functionName: "drawCount" });
@@ -43,14 +37,10 @@ export function PrizePool() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [depositAmt, setDepositAmt] = useState("100");
+  const [fundAmt, setFundAmt] = useState("500");
   const [withdrawAmt, setWithdrawAmt] = useState("");
   const [bal, setBal] = useState<bigint | undefined>();
   const [win, setWin] = useState<bigint | undefined>();
-  const [granted, setGranted] = useState(false);
-
-  useEffect(() => {
-    try { setGranted(!!acct && localStorage.getItem(viewKey(acct)) === "1"); } catch { /* ignore */ }
-  }, [acct]);
 
   const running = (k: string) => busy === k;
   const anyBusy = busy !== null;
@@ -83,7 +73,10 @@ export function PrizePool() {
       const enc = await encrypt.mutateAsync({ values: [{ value: conf, type: "euint64" }], contractAddress: POOL_TOKEN, userAddress: acct });
       const approve = encodeFunctionData({ abi: UNDERLYING_TOKEN_ABI, functionName: "approve", args: [POOL_TOKEN, under] });
       const wrap = encodeFunctionData({ abi: CONFIDENTIAL_TOKEN_ABI, functionName: "wrap", args: [acct, under] });
-      const dep = encodeFunctionData({ abi: CONFIDENTIAL_TRANSFER_AND_CALL_ABI, functionName: "confidentialTransferAndCall", args: [POOL_ADDRESS, enc.handles[0] as `0x${string}`, enc.inputProof as `0x${string}`, "0x"] });
+      // Pass the owner EOA in `data` so the pool grants it decrypt access → we can reveal with a plain
+      // user-decryption (no delegated-decrypt round-trip, which the testnet relayer rejects).
+      const viewerData = encodeAbiParameters([{ type: "address" }], [eoa as `0x${string}`]);
+      const dep = encodeFunctionData({ abi: CONFIDENTIAL_TRANSFER_AND_CALL_ABI, functionName: "confidentialTransferAndCall", args: [POOL_ADDRESS, enc.handles[0] as `0x${string}`, enc.inputProof as `0x${string}`, viewerData] });
       setMsg("Depositing into the confidential pool (gasless)…");
       const res = await sendTransactions([
         { to: POOL_UNDERLYING, value: 0n, data: approve },
@@ -97,35 +90,49 @@ export function PrizePool() {
     } catch (e) { fail(e); } finally { setBusy(null); }
   }
 
-  // ── Enable pool view: smart account delegates decrypt of the POOL to the owner EOA ──
-  async function enableView() {
-    if (!eoa || !acct) return;
-    setBusy("view"); setErr(null); setMsg("Enabling private view (gasless)…");
-    try {
-      const data = encodeFunctionData({ abi: ACL_DELEGATE_ABI, functionName: "delegateForUserDecryption", args: [eoa as `0x${string}`, POOL_ADDRESS, VIEW_DELEGATION_EXPIRY] });
-      const res = await sendTransactions([{ to: ACL_ADDRESS, value: 0n, data }]);
-      await res.included();
-      try { localStorage.setItem(viewKey(acct), "1"); } catch { /* ignore */ }
-      setGranted(true);
-      ok("✅ Private view enabled. Reveal your balance/winnings (allow a few seconds).");
-    } catch (e) { fail(e); } finally { setBusy(null); }
-  }
-
   async function reveal(which: "balance" | "winnings") {
     if (!acct) return;
     const handle = (which === "balance" ? balHandle : winHandle) as `0x${string}` | undefined;
     if (!handle || handle === NULL_HANDLE) { which === "balance" ? setBal(0n) : setWin(0n); return; }
     setBusy(`reveal-${which}`); setErr(null); setMsg(null);
     try {
-      const res: any = await (decryptAs.mutateAsync as any)({ handles: [{ handle, contractAddress: POOL_ADDRESS }], delegatorAddress: acct });
+      // Plain user-decryption: the pool granted our EOA access at deposit time, so no delegation needed.
+      const res: any = await decrypt.mutateAsync({ handles: [{ handle, contractAddress: POOL_ADDRESS }] });
       const v = res?.[handle] as bigint;
       which === "balance" ? setBal(v) : setWin(v);
     } catch (e: any) {
-      setErr(granted ? (e?.message ?? String(e)) : "Enable private view first (button above).");
+      setErr(e?.message ?? String(e));
     } finally { setBusy(null); }
   }
 
-  // ── Draw (admin/keeper) ──
+  // ── Fund the prize reserve (mock yield) — mint → wrap → confidentialTransferAndCall(PRIZE_TAG) ──
+  async function fundPrize() {
+    if (!acct) return;
+    let conf: bigint; try { conf = parseAmount(fundAmt); } catch { return; }
+    if (conf <= 0n) return;
+    setBusy("fund"); setErr(null);
+    try {
+      const under = toUnderlying(conf, 6);
+      setMsg("Encrypting prize amount…");
+      const enc = await encrypt.mutateAsync({ values: [{ value: conf, type: "euint64" }], contractAddress: POOL_TOKEN, userAddress: acct });
+      const mint = encodeFunctionData({ abi: UNDERLYING_TOKEN_ABI, functionName: "mint", args: [acct, under] });
+      const approve = encodeFunctionData({ abi: UNDERLYING_TOKEN_ABI, functionName: "approve", args: [POOL_TOKEN, under] });
+      const wrap = encodeFunctionData({ abi: CONFIDENTIAL_TOKEN_ABI, functionName: "wrap", args: [acct, under] });
+      const fund = encodeFunctionData({ abi: CONFIDENTIAL_TRANSFER_AND_CALL_ABI, functionName: "confidentialTransferAndCall", args: [POOL_ADDRESS, enc.handles[0] as `0x${string}`, enc.inputProof as `0x${string}`, PRIZE_TAG] });
+      setMsg("Funding the prize reserve (gasless)…");
+      const res = await sendTransactions([
+        { to: POOL_UNDERLYING, value: 0n, data: mint },
+        { to: POOL_UNDERLYING, value: 0n, data: approve },
+        { to: POOL_TOKEN, value: 0n, data: wrap },
+        { to: POOL_TOKEN, value: 0n, data: fund },
+      ]);
+      const txh = await res.included();
+      recordActivity({ type: "setup", label: `Funded the prize reserve with ${fundAmt} cUSDC (mock yield)`, asset: "cUSDC", hash: txh ?? res.userOpHash, isUserOp: !txh, gasless: true });
+      ok(`✅ Prize reserve funded with ${fundAmt} cUSDC. Trigger a draw to award it.`);
+    } catch (e) { fail(e); } finally { setBusy(null); }
+  }
+
+  // ── Draw (permissionless / keeper) ──
   async function draw() {
     setBusy("draw"); setErr(null); setMsg("Running the confidential draw (gasless)…");
     try {
@@ -172,8 +179,6 @@ export function PrizePool() {
     } catch (e) { fail(e); } finally { setBusy(null); }
   }
 
-  const isAdmin = isPoolOwner(eoa);
-
   return (
     <div className="space-y-5">
       <div>
@@ -211,7 +216,7 @@ export function PrizePool() {
       <div className="card space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">2 · Your private position</h2>
-          {!granted && <button className="btn-secondary text-xs" onClick={enableView} disabled={anyBusy || !BUNDLER_URL}>{running("view") ? "Enabling…" : "🔑 Enable private view"}</button>}
+          <span className="text-[11px] text-neutral-400">only you can decrypt</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg bg-black/[0.03] border border-black/10 p-3">
@@ -230,17 +235,30 @@ export function PrizePool() {
         )}
       </div>
 
-      {/* Draw (admin/keeper) */}
+      {/* Fund prize (mock yield) */}
+      <div className="card space-y-3">
+        <h2 className="font-semibold">3 · Fund the prize <span className="text-[11px] font-normal text-neutral-400">mock yield source</span></h2>
+        <p className="text-[11px] text-neutral-500">The prize is the yield on pooled savings. Here you fund the encrypted prize reserve directly; a production build tops this up from real lending/LST yield instead — the draw logic is identical.</p>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="text-xs text-neutral-600">Prize amount (cUSDC)</label>
+            <input className="input-field mt-1" inputMode="decimal" value={fundAmt} onChange={(e) => setFundAmt(e.target.value)} />
+          </div>
+          <button className="btn-secondary" onClick={fundPrize} disabled={anyBusy || !BUNDLER_URL}>{running("fund") ? "Funding…" : "🎁 Fund prize"}</button>
+        </div>
+      </div>
+
+      {/* Draw (permissionless / keeper) */}
       <div className="card space-y-2">
-        <h2 className="font-semibold">3 · Draw {isAdmin ? "(you are the keeper)" : "(admin/keeper)"}</h2>
+        <h2 className="font-semibold">4 · Draw</h2>
         <p className="text-[11px] text-neutral-500">Picks a winner onchain with FHE randomness, weighted by deposit size, over the encrypted balances — no offchain RNG, no plaintext. The winner sees their winnings; nobody else learns who won.</p>
-        <button className="btn-primary w-full" onClick={draw} disabled={anyBusy || !BUNDLER_URL || !isAdmin} title={isAdmin ? "" : "Only the pool keeper can trigger a draw"}>{running("draw") ? "Drawing…" : "🎲 Trigger confidential draw"}</button>
-        {!isAdmin && <p className="text-[11px] text-neutral-400">A production build automates this with a keeper; here the pool owner triggers it.</p>}
+        <button className="btn-primary w-full" onClick={draw} disabled={anyBusy || !BUNDLER_URL}>{running("draw") ? "Drawing…" : "🎲 Trigger confidential draw"}</button>
+        <p className="text-[11px] text-neutral-400">Anyone can trigger a round (a production build gates this behind a keeper to prevent grinding).</p>
       </div>
 
       {/* Withdraw (no loss) */}
       <div className="card space-y-3">
-        <h2 className="font-semibold">4 · Withdraw principal (no loss)</h2>
+        <h2 className="font-semibold">5 · Withdraw principal (no loss)</h2>
         <div>
           <label className="text-xs text-neutral-600">Amount (cUSDC)</label>
           <input className="input-field mt-1" inputMode="decimal" value={withdrawAmt} onChange={(e) => setWithdrawAmt(e.target.value)} placeholder="0.00" />

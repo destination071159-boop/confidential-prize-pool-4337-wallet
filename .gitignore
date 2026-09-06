@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# secrets — NEVER commit
+.env
+*.env
+!.env.example
+scripts/agent.config.json
+
+# build output
+build/
+dist/
+*.zip
+
+# hardhat / solidity generated
+artifacts/
+cache/
+types/
+fhevmTemp/
+coverage/
+coverage.json
+deployments/localhost/
+
+# misc
+.DS_Store
+*.log

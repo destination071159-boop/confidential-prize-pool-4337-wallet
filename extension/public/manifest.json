@@ -2,7 +2,7 @@
   "name": "Confidential Prize Pool 4337 Wallet",
   "version": "0.0.1",
   "manifest_version": 3,
-  "description": "Gasless ERC-4337 smart-account wallet with a Confidential Prize Pool: no-loss prize savings where deposits, balances, and the FHE-random winner stay encrypted — powered by Zama FHE.",
+  "description": "Gasless ERC-4337 wallet with a Confidential Prize Pool: no-loss prize savings, deposits & winner encrypted via Zama FHE.",
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'"
   },
